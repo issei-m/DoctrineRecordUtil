@@ -1,0 +1,75 @@
+
+# ユーザー
+User:
+  actAs:
+    Timestampable: ~
+  columns:
+    name:
+      type: string(255)
+      notnull: true
+  relations:
+    FavoriteProducts:
+      class: Product
+      refClass: FavoriteProduct
+      type: many
+      foreignType: many
+      foreignAlias: FavoritedUsers
+
+# 商品
+Product:
+  actAs:
+    Timestampable: ~
+  columns:
+    name:
+      type: string(255)
+      notnull: true
+    price:
+      type: integer(4)
+      unsigned: true
+      notnull: true
+    pv:
+      type: integer(4)
+      unsigned: true
+      notnull: true
+      default: 0
+
+# 商品購入ログ
+# oneToOne(Product), oneToMany(User)のテスト用
+BoughtLog:
+  actAs:
+    Timestampable: ~
+  columns:
+    product_id:
+      type: integer(8)
+      notnull: true
+    user_id:
+      type: integer(8)
+      notnull: true
+  relations:
+    Product:
+      type: one
+      foreignType: one
+    User:
+      type: one
+      foreignType: many
+      foreignAlias: BoughtLogs
+
+# お気に入り商品
+# manyToMany(Product <--> User)のテスト用
+FavoriteProduct:
+  actAs:
+    Timestampable: ~
+  columns:
+    user_id:
+      type: integer(8)
+      notnull: true
+    product_id:
+      type: integer(8)
+      notnull: true
+  relations:
+    User:
+      type: one
+      foreignType: many
+    Product:
+      type: one
+      foreignType: many
