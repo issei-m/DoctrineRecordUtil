@@ -6,16 +6,17 @@
  * @package    Doctrine
  * @subpackage Record
  * @author     Issei Murasawa <issei.m7@gmail.com>
- * @version    1.0
+ * @version    1.0.1
  */
 class DoctrineRecordUtil
 {
     /**
      * 与えられた配列を元にDoctrine_Recordを生成する
      *
-     * @param Doctrine_Record $record 元となる初期化済みのDoctrine_Recordインスタンス
+     * @param Doctrine_Record $record ソースとなる初期化済みのDoctrine_Recordインスタンス
      * @param array           $data   レコードのカラム、リレーション情報を格納した配列
-     * @param boolean         $save   渡されたDoctrine_Recordをsave()するかどうか
+     * @param boolean         $save   trueなら $record->save() する
+     *
      * @return Doctrine_Record
      */
     public static function create(Doctrine_Record $record, $data, $save = true)
@@ -26,7 +27,7 @@ class DoctrineRecordUtil
             if (isset($relations[$key])) {
                 $relation = $relations[$key];
 
-                if (!$relation->isOneToOne() && $relation->getType() !== Doctrine_Relation::ONE) {
+                if (!$relation->isOneToOne()) {
                     foreach (isset($value[0]) ? $value : array($value) as $v) {
                         $record->get($key)
                                ->add(self::_createForRelation($relation, $v));
@@ -48,13 +49,44 @@ class DoctrineRecordUtil
     }
 
     /**
-     * リレーションシップ構築に必要なDoctrine_Recordを作成する
-     * Doctrine_Recordの作成には self::create{__CLASS__}() が用いられる
+     * 受け取ったクラス名毎に実行する処理を決定する
+     *
+     * @param string  $class Doctrine_Recordのクラス名
+     * @param array   $data
+     * @param boolean $save
+     *
+     * @return Doctrine_Record
      *
      * @see DoctrineRecordUtil::create()
+     */
+    protected static function dispatch($class, $data, $save = true)
+    {
+        $method = 'create' . $class;
+
+        if (version_compare(PHP_VERSION, '5.3', '>=')) {
+            $called = get_called_class();
+
+            if (method_exists($called, $method)) {
+                return $called::$method($data, $save);
+            }
+        }
+        elseif (method_exists('self', $method)) {
+            return self::$method($data, $save);
+        }
+
+        return self::create(new $class(), $data, $save);
+    }
+
+    /**
+     * リレーションシップを構築するDoctrine_Recordを作成する
+     * 作成時には self::create{__CLASS__}() が用いられる
+     *
      * @param Doctrine_Relation $relation
      * @param Doctrine_Record   $data
+     *
      * @return Doctrine_Record
+     *
+     * @see DoctrineRecordUtil::create()
      */
     protected static function _createForRelation(Doctrine_Relation $relation, $data)
     {
@@ -62,19 +94,20 @@ class DoctrineRecordUtil
             return $data;
         }
 
-        $method = 'create' . ucfirst($relation->getClass());
-
-        return self::$method($data, false);
+        return self::dispatch($relation->getClass(), $data, false);
     }
 
     /**
-     * 未定義の create{__CLASS__}() コールを処理する
-     * ::create()のエイリアスとして動作し、第1引数に__CLASS__を初期化したインスタンスが渡される. (以降の引数は通常通り)
      * ※PHP 5.3以降で利用可能
      *
-     * @see DoctrineRecordUtil::create()
+     * 未定義の create{__CLASS__}() コールを処理する
+     * ::create() のエイリアスとして動作し、第1引数に__CLASS__を初期化したインスタンスが渡される. (以降の引数は通常通り)
+     *
      * @return Doctrine_Record
-     * @throws Exception
+     *
+     * @throws Exception create{__CLASS__}() 以外の形式でコールされた場合にスロー
+     *
+     * @see DoctrineRecordUtil::create()
      */
     public static function __callStatic($name, $arguments)
     {
@@ -82,21 +115,8 @@ class DoctrineRecordUtil
             throw new Exception('Call to undefined method ' . $name . '()');
         }
 
-        $class  = substr($name, 6);
-        $called = get_called_class();
-        $method = 'create' . $class;
-        $params = array(isset($arguments[0]) ? $arguments[0] : array());
+        array_unshift($arguments, substr($name, 6));
 
-        if (isset($arguments[1])) {
-            $params[1] = $arguments[1];
-        }
-
-        if (!method_exists($called, $method)) {
-            $called = 'self';
-            $method = 'create';
-            array_unshift($params, new $class);
-        }
-
-        return forward_static_call_array(array($called, $method), $params);
+        return forward_static_call_array(array('self', 'dispatch'), $arguments);
     }
 }
