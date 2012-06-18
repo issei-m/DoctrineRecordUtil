@@ -14,7 +14,7 @@ class DoctrineRecordUtil
      * 与えられた配列を元にDoctrine_Recordを生成する
      *
      * @param Doctrine_Record $record ソースとなる初期化済みのDoctrine_Recordインスタンス
-     * @param array           $data   レコードのカラム、リレーション情報を格納した配列
+     * @param array           $data   レコードのカラム、リレーション情報を持つデータ配列
      * @param boolean         $save   trueなら $record->save() する
      *
      * @return Doctrine_Record
@@ -78,15 +78,15 @@ class DoctrineRecordUtil
     }
 
     /**
-     * リレーションシップを構築するDoctrine_Recordを作成する
-     * 作成時には self::create{__CLASS__}() が用いられる
+     * リレーションシップ用のDoctrine_Recordを作成する
+     * ::dispatch() の引数に対象のクラス名とデータ配列が渡される
      *
      * @param Doctrine_Relation $relation
      * @param Doctrine_Record   $data
      *
      * @return Doctrine_Record
      *
-     * @see DoctrineRecordUtil::create()
+     * @see DoctrineRecordUtil::dispatch()
      */
     protected static function _createForRelation(Doctrine_Relation $relation, $data)
     {
@@ -101,7 +101,7 @@ class DoctrineRecordUtil
      * ※PHP 5.3以降で利用可能
      *
      * 未定義の create{__CLASS__}() コールを処理する
-     * ::create() のエイリアスとして動作し、第1引数に__CLASS__を初期化したインスタンスが渡される. (以降の引数は通常通り)
+     * ::dispatch() の引数に__CLASS__と以降の引数が順番通りに渡される
      *
      * @return Doctrine_Record
      *

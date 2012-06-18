@@ -14,7 +14,7 @@ class RecordUtil extends DoctrineRecordUtil
         );
         $data = array_merge($default, $data);
 
-        return parent::create(new User(), self::replace($data, uniqid('account-', true)), $save);
+        return parent::create(new User(), self::replace($data, uniqid('user-', true)), $save);
     }
 
     /**
